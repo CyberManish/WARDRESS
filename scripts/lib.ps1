@@ -21,7 +21,8 @@ function Step([string]$Message) {
     if ($script:TotalSteps -gt 0) {
         $percent = [int](($script:CurrentStep / $script:TotalSteps) * 100)
         Write-Host "[$script:CurrentStep/$script:TotalSteps - $percent%] ==> $Message" -ForegroundColor Cyan
-    } else {
+    }
+    else {
         Write-Host "==> $Message" -ForegroundColor Cyan
     }
 }
@@ -71,20 +72,22 @@ function Test-CompilationErrors([string]$RepoRoot) {
         Write-Progress-Inline "Checking TypeScript compilation..."
         $prev = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
-        $output = pnpm run type-check 2>&1
+        $output = npx pnpm run type-check 2>&1
         $ok = $LASTEXITCODE -eq 0
         $ErrorActionPreference = $prev
         
         if ($ok) {
             Write-Progress-Done "TypeScript check passed"
             return $true
-        } else {
+        }
+        else {
             Write-Host ""
             Write-Host "TypeScript compilation errors detected:" -ForegroundColor Red
             Write-Host $output -ForegroundColor Yellow
             return $false
         }
-    } finally {
+    }
+    finally {
         Pop-Location
     }
 }
@@ -219,7 +222,8 @@ function Warm-Images([string[]]$Images) {
         
         if ($ok) {
             Write-Host "    [$current/$total] Pulled: $img" -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "    [$current/$total] Failed: $img (will retry during build)" -ForegroundColor Yellow
         }
     }
@@ -232,44 +236,32 @@ function Warm-Images([string[]]$Images) {
 function Build-Service([string[]]$BuildArgs, [string]$Service, [string]$FailureHint) {
     Write-Host "    Building $Service..." -ForegroundColor Cyan
     
-    # Stream build output with progress indicators
-    $buildCmd = "docker"
     $fullArgs = @("compose", "build") + $BuildArgs + @($Service)
     
     $startTime = Get-Date
-    $process = Start-Process -FilePath $buildCmd -ArgumentList $fullArgs `
-        -NoNewWindow -PassThru -RedirectStandardOutput "build_$Service.log" `
-        -RedirectStandardError "build_$Service.err.log"
-    
-    $spinChars = @('|', '/', '-', '\')
-    $spinIndex = 0
-    
-    while (-not $process.HasExited) {
-        $elapsed = [int]((Get-Date) - $startTime).TotalSeconds
-        $spin = $spinChars[$spinIndex % 4]
-        Write-Host "`r    Building $Service... $spin ($elapsed`s elapsed)" -NoNewline -ForegroundColor Cyan
-        $spinIndex++
-        Start-Sleep -Milliseconds 250
-    }
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    & docker @fullArgs > "build_$Service.log" 2>&1
+    $exitCode = $LASTEXITCODE
+    $ErrorActionPreference = $prev
     
     $elapsed = [int]((Get-Date) - $startTime).TotalSeconds
-    Write-Host "`r" -NoNewline
     
-    if ($process.ExitCode -eq 0) {
+    if ($exitCode -eq 0) {
         Write-Host "    Built $Service successfully ($elapsed`s)" -ForegroundColor Green
         Remove-Item "build_$Service.log" -ErrorAction SilentlyContinue
-        Remove-Item "build_$Service.err.log" -ErrorAction SilentlyContinue
         return $true
-    } else {
+    }
+    else {
         Write-Host "    Build failed for $Service" -ForegroundColor Red
         
         # Show error details
-        if (Test-Path "build_$Service.err.log") {
-            $errorContent = Get-Content "build_$Service.err.log" -Raw
+        if (Test-Path "build_$Service.log") {
+            $errorContent = Get-Content "build_$Service.log" -Tail 30 -ErrorAction SilentlyContinue
             if ($errorContent) {
                 Write-Host ""
                 Write-Host "Build error output:" -ForegroundColor Red
-                Write-Host $errorContent -ForegroundColor Yellow
+                Write-Host ($errorContent -join "`n") -ForegroundColor Yellow
             }
         }
         

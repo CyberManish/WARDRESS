@@ -21,6 +21,7 @@ from app.routers import (
     artifacts,
     audit,
     auth,
+    csp_reports,
     health,
     imports,
     remediation,
@@ -163,6 +164,7 @@ app.include_router(settings.router)
 app.include_router(settings.channels_router)
 app.include_router(settings.ai_router)
 app.include_router(reports.router)
+app.include_router(csp_reports.router)
 app.include_router(agent.router)
 
 

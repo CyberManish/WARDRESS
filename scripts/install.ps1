@@ -124,7 +124,7 @@ if (Test-Path (Join-Path $frontendPath "package.json")) {
     try {
         if (-not (Test-Path "node_modules")) {
             Write-Host "    Installing frontend dependencies..." -ForegroundColor Cyan
-            pnpm install --frozen-lockfile
+            npx pnpm install --frozen-lockfile
             if ($LASTEXITCODE -ne 0) {
                 Fail "Failed to install frontend dependencies"
             }

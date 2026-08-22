@@ -918,3 +918,31 @@ class HealthDetails(BaseModel):
     last_scan_at: datetime | None
     last_dispatch_tick_at: datetime | None
     components: dict[str, HealthComponent]
+
+
+# --- CSP violation reporting (CYBER-14) ---
+
+
+class CspReportOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    site_id: uuid.UUID | None
+    site_name: str | None = None
+    document_uri: str
+    violated_directive: str
+    effective_directive: str | None
+    blocked_uri: str | None
+    source_file: str | None
+    line_number: int | None
+    column_number: int | None
+    status_code: int | None
+    user_agent: str | None
+    created_at: datetime
+
+
+class CspReportPage(BaseModel):
+    items: list[CspReportOut]
+    total: int
+    offset: int
+    limit: int

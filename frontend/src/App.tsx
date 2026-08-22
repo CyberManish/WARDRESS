@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth"
 import { AlertsPage } from "@/pages/alerts"
 import { AssistantPage } from "@/pages/assistant"
 import { AuditPage } from "@/pages/audit"
+import { CspReportsPage } from "@/pages/csp-reports"
 import { HealthPage } from "@/pages/health"
 import { LoginPage } from "@/pages/login"
 import { RemediationPage } from "@/pages/remediation"
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/assistant" element={<AssistantPage />} />
           <Route path="/remediation" element={<RemediationPage />} />
+          <Route path="/csp-reports" element={<CspReportsPage />} />
           <Route path="/health" element={<HealthPage />} />
           <Route
             path="/audit"

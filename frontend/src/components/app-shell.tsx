@@ -30,6 +30,7 @@ export function AppShell() {
     { to: "/alerts", label: "Alerts" },
     { to: "/assistant", label: "Assistant" },
     { to: "/remediation", label: "Remediation" },
+    { to: "/csp-reports", label: "CSP" },
     { to: "/health", label: "Health" },
     ...(isAdmin ? [{ to: "/audit", label: "Audit" }] : []),
     { to: "/settings", label: "Settings" },

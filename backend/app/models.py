@@ -623,6 +623,41 @@ class RemediationExecution(Base):
     )
 
 
+# --- CSP violation reporting (CYBER-14) ------------------------------------
+
+
+class CspReport(Base):
+    """Browser-reported CSP violations collected via the unauthenticated
+    POST /api/csp-report endpoint.  Linked to a monitored site when the
+    report's document-uri matches a site's URL origin; NULL otherwise
+    (reports from unknown origins are still stored for visibility).
+
+    The raw_report column keeps the full JSON blob for forward-compat
+    with evolving browser CSP report formats."""
+
+    __tablename__ = "csp_reports"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    site_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("sites.id", ondelete="SET NULL"), default=None, index=True
+    )
+    document_uri: Mapped[str] = mapped_column(String(2048))
+    violated_directive: Mapped[str] = mapped_column(String(512))
+    effective_directive: Mapped[str | None] = mapped_column(String(512), default=None)
+    blocked_uri: Mapped[str | None] = mapped_column(String(2048), default=None)
+    original_policy: Mapped[str | None] = mapped_column(Text, default=None)
+    referrer: Mapped[str | None] = mapped_column(String(2048), default=None)
+    source_file: Mapped[str | None] = mapped_column(String(2048), default=None)
+    line_number: Mapped[int | None] = mapped_column(Integer, default=None)
+    column_number: Mapped[int | None] = mapped_column(Integer, default=None)
+    status_code: Mapped[int | None] = mapped_column(Integer, default=None)
+    user_agent: Mapped[str | None] = mapped_column(String(512), default=None)
+    raw_report: Mapped[dict | None] = mapped_column(default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    __table_args__ = (Index("ix_csp_reports_site_created", "site_id", "created_at"),)
+
+
 # --- Conversational agent (§ agent) ---------------------------------------
 
 

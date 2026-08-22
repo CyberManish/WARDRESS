@@ -1039,3 +1039,40 @@ export const bulkImportSites = (body: {
     method: "POST",
     body: JSON.stringify(body),
   })
+
+// --- CSP violation reporting (CYBER-14) ---
+
+export interface CspReportEntry {
+  id: string
+  site_id: string | null
+  site_name: string | null
+  document_uri: string
+  violated_directive: string
+  effective_directive: string | null
+  blocked_uri: string | null
+  source_file: string | null
+  line_number: number | null
+  column_number: number | null
+  status_code: number | null
+  user_agent: string | null
+  created_at: string
+}
+
+export interface CspReportPage {
+  items: CspReportEntry[]
+  total: number
+  offset: number
+  limit: number
+}
+
+export const listCspReports = (
+  offset = 0,
+  limit = 50,
+  siteId?: string,
+  violatedDirective?: string
+) => {
+  const params = new URLSearchParams({ offset: String(offset), limit: String(limit) })
+  if (siteId) params.set("site_id", siteId)
+  if (violatedDirective) params.set("violated_directive", violatedDirective)
+  return api<CspReportPage>(`/api/csp-reports?${params}`)
+}
