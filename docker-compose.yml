@@ -1,0 +1,148 @@
+# Wardress — Docker Compose stack (single host, Windows + Docker Desktop)
+# Phase 0: every service defined and starting together. Feature depth
+# arrives in later phases; the wiring here is final.
+
+name: wardress
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wardress}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (scripts/install.ps1 generates it)}
+      POSTGRES_DB: ${POSTGRES_DB:-wardress}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wardress} -d ${POSTGRES_DB:-wardress}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:?Set CREDENTIALS_ENCRYPTION_KEY in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:${WARDRESS_HTTP_PORT:-8321}}
+      # No AI env vars: every provider, key, model and endpoint is configured in
+      # the dashboard (Settings → AI providers) and stored in the DB. See §8.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Phase 5 hardening knobs (API-only; workers never see requests).
+      RATE_LIMIT_PER_IP: ${RATE_LIMIT_PER_IP:-300}
+      RATE_LIMIT_PER_USER: ${RATE_LIMIT_PER_USER:-240}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      # Set true when fronting Wardress with an HTTPS reverse proxy so
+      # the refresh cookie is Secure-flagged.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "${WARDRESS_HTTP_PORT:-8321}:8000"
+    volumes:
+      # Read-only: the app serves screenshots; only the worker writes.
+      - scan-artifacts:/data/artifacts:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      # Worker imports app settings (shared config module); it needs the
+      # same required secrets even though it never signs tokens itself.
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      # Alert dispatch decrypts stored channel configs/SMTP credentials.
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:?Set CREDENTIALS_ENCRYPTION_KEY in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:${WARDRESS_HTTP_PORT:-8321}}
+      # No AI env vars — AI config lives entirely in the DB/UI (see §8).
+    volumes:
+      - scan-artifacts:/data/artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  beat:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.worker
+    restart: unless-stopped
+    command: ["celery", "-A", "worker.celery_app", "beat", "--loglevel=info"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:?Set CREDENTIALS_ENCRYPTION_KEY in .env}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Two-way Telegram bot (master prompt §8). Dedicated small container
+  # (decision logged in PROGRESS.md); only started when the user opts in:
+  #   docker compose --profile telegram up -d
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.worker
+    restart: unless-stopped
+    profiles: ["telegram"]
+    command: ["python", "-m", "worker.telegram_bot"]
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:?Set CREDENTIALS_ENCRYPTION_KEY in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Optional fully-offline LLM (master prompt §1). Started only with:
+  #   docker compose --profile ollama up -d
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    profiles: ["ollama"]
+    volumes:
+      - ollama-data:/root/.ollama
+
+volumes:
+  db-data:
+  redis-data:
+  scan-artifacts:
+  ollama-data:
