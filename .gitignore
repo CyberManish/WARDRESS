@@ -1,0 +1,48 @@
+# --- Secrets / environment ---
+.env
+*.env.local
+
+# --- Python / uv ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+WARDRESS_AUDIT_REPORT_2026-07-21.md
+build/
+Audit
+react-bits-main
+.agents
+.claude
+presentation
+build_app.err.log
+EXample
+Build
+AI_CODE_AUDIT_FINDINGS.md
+AI_CODE_FIX_IMPLEMENTATION_PROMPT.md
+uuuu
+
+# --- Node / pnpm ---
+node_modules/
+frontend/dist/
+.pnpm-store/
+
+# --- Reference clones & cached docs (Phase 0 read-only material, not shipped) ---
+reference/
+docs-cache/
+
+# --- Runtime data volumes (never commit user data) ---
+data/
+# ...except the bundled models.dev catalog snapshot (offline fallback, not user data).
+!backend/app/data/
+!backend/app/data/models_dev_catalog.json
+*.sqlite3
+
+# --- OS / editor noise ---
+Thumbs.db
+.DS_Store
+*.swp
+.idea/
+.vscode/
