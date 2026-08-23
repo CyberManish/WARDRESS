@@ -1,0 +1,93 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Wardress",
+  "theme": "mint",
+  "logo": {
+    "light": "/images/logo-light.svg",
+    "dark": "/images/logo-dark.svg",
+    "href": "/introduction"
+  },
+  "favicon": "/images/favicon.svg",
+  "colors": {
+    "primary": "#2e7d32",
+    "light": "#38B2AC",
+    "dark": "#1b5e20"
+  },
+  "navbar": {
+    "links": [
+      {
+        "type": "github",
+        "href": "https://github.com/CyberManish/WARDRESS"
+      }
+    ]
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "installation"
+        ]
+      },
+      {
+        "group": "Platform Guide",
+        "pages": [
+          "usage",
+          "detection-layers"
+        ]
+      },
+      {
+        "group": "Detection Engine",
+        "pages": [
+          "layers/1-content-hash",
+          "layers/2-dom-structure",
+          "layers/3-link-audit",
+          "layers/4-visual-diff",
+          "layers/5-signatures",
+          "layers/6-security-metadata",
+          "layers/7-cloaking",
+          "layers/8-semantics",
+          "layers/9-risk-fusion"
+        ]
+      },
+      {
+        "group": "Frontend SPA",
+        "pages": [
+          "frontend/architecture",
+          "frontend/scan-detail",
+          "frontend/components"
+        ]
+      },
+      {
+        "group": "Administration",
+        "pages": [
+          "configuration",
+          "user-management",
+          "api-reference",
+          "remediation-hooks",
+          "agent",
+          "audit-logs",
+          "security-and-dev"
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/CyberManish/WARDRESS"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
+  }
+}
